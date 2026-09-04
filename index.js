@@ -1,4 +1,4 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -30,6 +30,15 @@ async function connectToMongoDB() {
       console.log("New recipe received:", newRecipe);
       const result = await recipes.insertOne(newRecipe);
       res.send(result);
+    });
+    app.get("/recipes/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+
+      const recipe = await recipes.findOne({
+        _id: new ObjectId(id),
+      });
+      res.send(recipe);
     });
 
     app.get("/recipes", async (req, res) => {
