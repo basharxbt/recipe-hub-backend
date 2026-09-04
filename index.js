@@ -1,8 +1,18 @@
 const { MongoClient } = require("mongodb");
 const express = require("express");
+const cors = require("cors");
 const app = express();
+
 const port = 3100;
 require("dotenv").config();
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
 
@@ -14,10 +24,19 @@ async function connectToMongoDB() {
   try {
     await client.connect();
     console.log("You successfully connected to MongoDB!");
+
+    app.post("/recipes", async (req, res) => {
+      const newRecipe = req.body;
+      console.log("New recipe received:", newRecipe);
+      const result = await recipes.insertOne(newRecipe);
+      res.send(result);
+    });
+
     app.get("/recipes", async (req, res) => {
       const allRecipes = await recipes.find().toArray();
       res.send(allRecipes);
     });
+
     return client;
   } catch (err) {
     // console.dir(err);
