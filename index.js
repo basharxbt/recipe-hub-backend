@@ -26,7 +26,7 @@ async function connectToMongoDB() {
     console.log("You successfully connected to MongoDB!");
 
     app.post("/recipes", async (req, res) => {
-      const newRecipe = req.body;
+      const newRecipe = { ...req.body, Likes: 0 };
       console.log("New recipe received:", newRecipe);
       const result = await recipes.insertOne(newRecipe);
       res.send(result);
@@ -38,6 +38,37 @@ async function connectToMongoDB() {
       const recipe = await recipes.findOne({
         _id: new ObjectId(id),
       });
+      res.send(recipe);
+    });
+
+    app.patch("/recipes/:id", async (req, res) => {
+      await recipes.updateMany({}, [
+        {
+          $set: {
+            likes: {
+              $convert: {
+                input: "$likes",
+                to: "int",
+                onError: 0,
+                onNull: 0,
+              },
+            },
+          },
+        },
+      ]);
+      const id = req.params.id;
+      console.log(id, "jjjjjjjj");
+
+      const recipe = await recipes.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $inc: {
+            likes: 1,
+          },
+        },
+      );
       res.send(recipe);
     });
 
