@@ -19,6 +19,8 @@ const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 const database = client.db("RecipeDB");
 const recipes = database.collection("Recipes");
+const savedRecipes = database.collection("SavedRecipes");
+const reportRecipes = database.collection("reportRecipes");
 
 async function connectToMongoDB() {
   try {
@@ -70,6 +72,18 @@ async function connectToMongoDB() {
         },
       );
       res.send(recipe);
+    });
+
+    app.post("/recipes/savedrecipe", async (req, res) => {
+      const recipe = await savedRecipes.insertOne(req.body);
+      console.log(recipe);
+      res.send(recipe);
+    });
+
+    app.post("/recipes/report", async (req, res) => {
+      const data = req.body;
+      const report = await reportRecipes.insertOne(data);
+      res.send(report);
     });
 
     app.get("/recipes", async (req, res) => {
