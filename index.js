@@ -29,13 +29,13 @@ async function connectToMongoDB() {
 
     app.post("/recipes", async (req, res) => {
       const newRecipe = { ...req.body, Likes: 0 };
-      console.log("New recipe received:", newRecipe);
+      // console.log("New recipe received:", newRecipe);
       const result = await recipes.insertOne(newRecipe);
       res.send(result);
     });
-    app.get("/recipes/:id", async (req, res) => {
+    app.get("/recipes/find/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
 
       const recipe = await recipes.findOne({
         _id: new ObjectId(id),
@@ -43,7 +43,7 @@ async function connectToMongoDB() {
       res.send(recipe);
     });
 
-    app.patch("/recipes/:id", async (req, res) => {
+    app.patch("/recipes/find/:id", async (req, res) => {
       await recipes.updateMany({}, [
         {
           $set: {
@@ -59,7 +59,7 @@ async function connectToMongoDB() {
         },
       ]);
       const id = req.params.id;
-      console.log(id, "jjjjjjjj");
+      // console.log(id, "jjjjjjjj");
 
       const recipe = await recipes.updateOne(
         {
@@ -76,8 +76,22 @@ async function connectToMongoDB() {
 
     app.post("/recipes/savedrecipe", async (req, res) => {
       const recipe = await savedRecipes.insertOne(req.body);
-      console.log(recipe);
+      // console.log(recipe);
       res.send(recipe);
+    });
+    app.get("/recipes/savedrecipe", async (req, res) => {
+      const favoriteRecipe = await savedRecipes.find().toArray();
+      // console.log(favoriteRecipe, "this is favorite");
+      res.send(favoriteRecipe);
+    });
+    app.delete("/recipes/savedrecipe/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log("id from params:", id, typeof id);
+      const unsaveRecipe = await savedRecipes.deleteOne({
+        _id: id,
+      });
+      console.log(unsaveRecipe);
+      res.send(unsaveRecipe);
     });
 
     app.post("/recipes/report", async (req, res) => {
