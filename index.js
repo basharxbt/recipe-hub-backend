@@ -79,8 +79,15 @@ async function connectToMongoDB() {
       // console.log(recipe);
       res.send(recipe);
     });
-    app.get("/recipes/savedrecipe", async (req, res) => {
-      const favoriteRecipe = await savedRecipes.find().toArray();
+    app.get("/recipes/savedrecipe/:email", async (req, res) => {
+      console.log(req.params);
+      const email = req.params.email;
+      console.log(email, "this is email");
+      const favoriteRecipe = await savedRecipes
+        .find({
+          userEmail: email,
+        })
+        .toArray();
       // console.log(favoriteRecipe, "this is favorite");
       res.send(favoriteRecipe);
     });
