@@ -21,6 +21,7 @@ const database = client.db("RecipeDB");
 const recipes = database.collection("Recipes");
 const savedRecipes = database.collection("SavedRecipes");
 const reportRecipes = database.collection("reportRecipes");
+const users = database.collection("user");
 
 async function connectToMongoDB() {
   try {
@@ -35,7 +36,6 @@ async function connectToMongoDB() {
     });
     app.get("/recipes/find/:id", async (req, res) => {
       const id = req.params.id;
-      // console.log(id);
 
       const recipe = await recipes.findOne({
         _id: new ObjectId(id),
@@ -59,7 +59,6 @@ async function connectToMongoDB() {
         },
       ]);
       const id = req.params.id;
-      // console.log(id, "jjjjjjjj");
 
       const recipe = await recipes.updateOne(
         {
@@ -76,34 +75,37 @@ async function connectToMongoDB() {
 
     app.post("/recipes/savedrecipe", async (req, res) => {
       const recipe = await savedRecipes.insertOne(req.body);
-      // console.log(recipe);
+
       res.send(recipe);
     });
     app.get("/recipes/savedrecipe/:email", async (req, res) => {
-      console.log(req.params);
       const email = req.params.email;
-      console.log(email, "this is email");
+
       const favoriteRecipe = await savedRecipes
         .find({
           userEmail: email,
         })
         .toArray();
-      // console.log(favoriteRecipe, "this is favorite");
+
       res.send(favoriteRecipe);
     });
     app.delete("/recipes/savedrecipe/:id", async (req, res) => {
       const { id } = req.params;
-      console.log("id from params:", id, typeof id);
+
       const unsaveRecipe = await savedRecipes.deleteOne({
         _id: id,
       });
-      console.log(unsaveRecipe);
+
       res.send(unsaveRecipe);
     });
 
-    app.post("/recipes/report", async (req, res) => {
+    app.post("/recipehub/report", async (req, res) => {
       const data = req.body;
       const report = await reportRecipes.insertOne(data);
+      res.send(report);
+    });
+    app.get("/recipehub/report", async (req, res) => {
+      const report = await reportRecipes.find().toArray();
       res.send(report);
     });
 
@@ -111,7 +113,21 @@ async function connectToMongoDB() {
       const allRecipes = await recipes.find().toArray();
       res.send(allRecipes);
     });
+    app.get("/recipes/user/:email", async (req, res) => {
+      const authorEmail = req.params.email;
+      const allRecipes = await recipes
+        .find({
+          authorEmail: authorEmail,
+        })
+        .toArray();
+      res.send(allRecipes);
+    });
 
+    app.get("/recipehub/users", async (req, res) => {
+      const allUsers = await users.find().toArray();
+
+      res.send(allUsers);
+    });
     return client;
   } catch (err) {
     // console.dir(err);
