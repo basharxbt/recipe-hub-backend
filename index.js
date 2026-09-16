@@ -1,5 +1,3 @@
-const dns = require("node:dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
@@ -38,6 +36,51 @@ async function connectToMongoDB() {
       const result = await recipes.insertOne(newRecipe);
       res.send(result);
     });
+    app.delete("/reported-recipe/data/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log(id);
+      const result = await reportRecipes.deleteOne({
+        recipeId: id,
+      });
+      console.log(result);
+      res.send(result);
+    });
+    app.delete("/reported-recipe/data-delete/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log(id);
+      const result = await recipes.deleteOne({
+        _id: new ObjectId(id),
+      });
+      console.log(result);
+      res.send(result);
+    });
+    app.get("/reported-recipe/data", async (req, res) => {
+      const reportsData = await reportRecipes.find().toArray();
+
+      const reportedIds = reportsData.map(
+        (report) => new ObjectId(report.recipeId),
+      );
+
+      const findRecipe = await recipes
+        .find({
+          _id: { $in: reportedIds },
+        })
+        .toArray();
+
+      const mergedData = reportsData.map((report) => {
+        const recipe = findRecipe.find(
+          (recipe) => recipe._id.toString() === report.recipeId,
+        );
+
+        return {
+          ...report,
+          recipe,
+        };
+      });
+
+      res.send(mergedData);
+    });
+
     app.get("/recipes/find/:id", async (req, res) => {
       const id = req.params.id;
 
