@@ -1,3 +1,5 @@
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
@@ -15,6 +17,8 @@ app.use(
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
+
+console.log("Mongo URI exists:", !!process.env.MONGODB_URI);
 
 const client = new MongoClient(uri);
 const database = client.db("RecipeDB");
@@ -109,9 +113,28 @@ async function connectToMongoDB() {
       res.send(report);
     });
 
+    // app.get("/recipes", async (req, res) => {
+    //   const allRecipes = await recipes.find().toArray();
+    //   res.send(allRecipes);
+    // });
+
     app.get("/recipes", async (req, res) => {
-      const allRecipes = await recipes.find().toArray();
-      res.send(allRecipes);
+      const search = req.query.search;
+
+      let query = {};
+
+      if (search) {
+        query = {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
+        };
+      }
+
+      const result = await recipes.find(query).toArray();
+
+      res.send(result);
     });
     app.get("/recipes/user/:email", async (req, res) => {
       const authorEmail = req.params.email;
@@ -130,7 +153,7 @@ async function connectToMongoDB() {
     });
     return client;
   } catch (err) {
-    // console.dir(err);
+    console.error("MongoDB connection failed:", err);
   }
 }
 
