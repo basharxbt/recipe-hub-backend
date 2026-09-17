@@ -26,6 +26,8 @@ const reportRecipes = database.collection("reportRecipes");
 const users = database.collection("user");
 
 async function connectToMongoDB() {
+  const authenticate = async (req, res) => {};
+
   try {
     await client.connect();
     console.log("You successfully connected to MongoDB!");
