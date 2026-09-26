@@ -1,6 +1,7 @@
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const app = express();
 
 const port = 3100;
@@ -17,7 +18,7 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 
 console.log("Mongo URI exists:", !!process.env.MONGODB_URI);
-
+const JWKS = createRemoteJWKSet(new URL("http://localhost:3000/api/auth/jwks"));
 const client = new MongoClient(uri);
 const database = client.db("RecipeDB");
 const recipes = database.collection("Recipes");
@@ -26,15 +27,44 @@ const reportRecipes = database.collection("reportRecipes");
 const users = database.collection("user");
 
 async function connectToMongoDB() {
-  const authenticate = async (req, res) => {};
-
   try {
+    const authenticate = async (req, res, next) => {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader) {
+        return res.status(401).json({
+          message: "Unauthorized Access",
+        });
+      }
+
+      const token = authHeader.split(" ")[1];
+
+      if (!token) {
+        return res.status(401).json({
+          message: "Unauthorized Access",
+        });
+      }
+
+      try {
+        const { payload } = await jwtVerify(token, JWKS);
+
+        req.user = payload;
+
+        return next();
+      } catch (error) {
+        console.error("JWT verification failed:", error);
+
+        return res.status(401).json({
+          message: "Unauthorized Access",
+        });
+      }
+    };
     await client.connect();
     console.log("You successfully connected to MongoDB!");
 
     app.post("/recipes", async (req, res) => {
-      const newRecipe = { ...req.body, Likes: 0 };
-      // console.log("New recipe received:", newRecipe);
+      const newRecipe = { ...req.body, likes: 0 };
+
       const result = await recipes.insertOne(newRecipe);
       res.send(result);
     });
@@ -127,7 +157,7 @@ async function connectToMongoDB() {
 
       res.send(recipe);
     });
-    app.get("/recipes/savedrecipe/:email", async (req, res) => {
+    app.get("/recipes/savedrecipe/:email", authenticate, async (req, res) => {
       const email = req.params.email;
 
       const favoriteRecipe = await savedRecipes
@@ -165,6 +195,7 @@ async function connectToMongoDB() {
 
     app.get("/recipes", async (req, res) => {
       const search = req.query.search;
+      console.log(search);
 
       let query = {};
 
@@ -177,15 +208,23 @@ async function connectToMongoDB() {
         };
       }
 
-      const result = await recipes.find(query).toArray();
+      if (req.query.page) {
+        const page = parseInt(req.query.page) || 1;
+        const perPage = parseInt(req.query.perPage) || 10;
+        const skipItems = (page - 1) * perPage;
 
+        const cursor = recipes.find(query).skip(skipItems).limit(perPage);
+        const recipe = await cursor.toArray();
+        return res.send(recipe);
+      }
+      const result = await recipes.find(query).toArray();
       res.send(result);
     });
     app.get("/recipes/user/:email", async (req, res) => {
       const authorEmail = req.params.email;
       const allRecipes = await recipes
         .find({
-          authorEmail: authorEmail,
+          "author.authorEmail": authorEmail,
         })
         .toArray();
       res.send(allRecipes);
@@ -195,6 +234,15 @@ async function connectToMongoDB() {
       const allUsers = await users.find().toArray();
 
       res.send(allUsers);
+    });
+    app.get("/recent/recipes/:email", async (req, res) => {
+      const email = req.params?.email;
+      const recentRecipes = recipes
+        .find({
+          authorEmail: email,
+        })
+        .sort({ createdAt: -1 })
+        .limit(3);
     });
     return client;
   } catch (err) {
