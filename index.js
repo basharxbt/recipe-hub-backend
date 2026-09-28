@@ -152,6 +152,36 @@ async function connectToMongoDB() {
       res.send(recipe);
     });
 
+    app.patch("/recipe/manage/:id", async (req, res) => {
+      const recipeId = req.params.id;
+      console.log(recipeId, "this is recipe id from backend");
+      const recipe = await recipes.findOne({
+        _id: new ObjectId(recipeId),
+      });
+
+      if (!recipe) {
+        return res.status(404).json({
+          message: "Recipe not found",
+        });
+      }
+
+      const newStatus =
+        recipe.isFeatured === "Featured" ? "Regular" : "Featured";
+
+      await recipes.updateOne(
+        { _id: new ObjectId(recipeId) },
+        {
+          $set: {
+            isFeatured: newStatus,
+          },
+        },
+      );
+
+      return res.send({
+        isFeatured: newStatus,
+      });
+    });
+
     app.post("/recipes/savedrecipe", async (req, res) => {
       const recipe = await savedRecipes.insertOne(req.body);
 
@@ -166,13 +196,25 @@ async function connectToMongoDB() {
         })
         .toArray();
 
-      res.send(favoriteRecipe);
+      const recipeId = favoriteRecipe
+        .filter((recipe) => ObjectId.isValid(recipe.recipeId))
+        .map((recipe) => new ObjectId(recipe.recipeId));
+
+      const result = await recipes
+        .find({
+          _id: { $in: recipeId },
+        })
+        .toArray();
+
+      console.log(recipeId, "this is result");
+
+      res.send(result);
     });
     app.delete("/recipes/savedrecipe/:id", async (req, res) => {
       const { id } = req.params;
 
       const unsaveRecipe = await savedRecipes.deleteOne({
-        _id: id,
+        recipeId: id,
       });
 
       res.send(unsaveRecipe);
@@ -210,7 +252,7 @@ async function connectToMongoDB() {
 
       if (req.query.page) {
         const page = parseInt(req.query.page) || 1;
-        const perPage = parseInt(req.query.perPage) || 10;
+        const perPage = parseInt(req.query.perPage) || 8;
         const skipItems = (page - 1) * perPage;
 
         const cursor = recipes.find(query).skip(skipItems).limit(perPage);
@@ -222,11 +264,13 @@ async function connectToMongoDB() {
     });
     app.get("/recipes/user/:email", async (req, res) => {
       const authorEmail = req.params.email;
+      console.log(authorEmail, "this is author email from backend");
       const allRecipes = await recipes
         .find({
-          "author.authorEmail": authorEmail,
+          authorEmail: authorEmail,
         })
         .toArray();
+      console.log(allRecipes, "this is author user data recipe from backend");
       res.send(allRecipes);
     });
 
