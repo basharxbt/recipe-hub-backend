@@ -1,3 +1,6 @@
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 const { MongoClient, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
@@ -25,6 +28,7 @@ const recipes = database.collection("Recipes");
 const savedRecipes = database.collection("SavedRecipes");
 const reportRecipes = database.collection("reportRecipes");
 const users = database.collection("user");
+const transactions = database.collection("transactions");
 
 async function connectToMongoDB() {
   try {
@@ -60,6 +64,7 @@ async function connectToMongoDB() {
       }
     };
     await client.connect();
+
     console.log("You successfully connected to MongoDB!");
 
     app.post("/recipes", async (req, res) => {
@@ -257,7 +262,7 @@ async function connectToMongoDB() {
       if (category) {
         query = {
           category: {
-            $regex: search,
+            $regex: category,
             $options: "i",
           },
         };
@@ -265,7 +270,7 @@ async function connectToMongoDB() {
       if (cuisine) {
         query = {
           cuisine: {
-            $regex: search,
+            $regex: cuisine,
             $options: "i",
           },
         };
@@ -300,6 +305,11 @@ async function connectToMongoDB() {
 
       res.send(allUsers);
     });
+    app.get("/premium/transaction", async (req, res) => {
+      const tx = await transactions.find().toArray();
+
+      res.send(tx);
+    });
     app.get("/recent/recipes/:email", async (req, res) => {
       const email = req.params?.email;
       const recentRecipes = recipes
@@ -329,4 +339,5 @@ connectToMongoDB().then(() => {
     console.log(`Example app listening on port ${port}`);
   });
 });
-module.exports = { connectToMongoDB, disconnectFromMongoDB };
+connectToMongoDB();
+module.exports = app;
