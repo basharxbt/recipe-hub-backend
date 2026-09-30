@@ -236,14 +236,35 @@ async function connectToMongoDB() {
     // });
 
     app.get("/recipes", async (req, res) => {
+      console.log(req.query, "this is qqqqqqqq");
       const search = req.query.search;
+      const category = req.query.category;
+      const cuisine = req.query.cuisine;
       console.log(search);
+      console.log(category);
+      console.log(cuisine);
 
       let query = {};
 
       if (search) {
         query = {
           title: {
+            $regex: search,
+            $options: "i",
+          },
+        };
+      }
+      if (category) {
+        query = {
+          category: {
+            $regex: search,
+            $options: "i",
+          },
+        };
+      }
+      if (cuisine) {
+        query = {
+          cuisine: {
             $regex: search,
             $options: "i",
           },
