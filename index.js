@@ -20,7 +20,7 @@ app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
 
-console.log("Mongo URI exists:", !!process.env.MONGODB_URI);
+// console.log("Mongo URI exists:", !!process.env.MONGODB_URI);
 const JWKS = createRemoteJWKSet(new URL("http://localhost:3000/api/auth/jwks"));
 const client = new MongoClient(uri);
 const database = client.db("RecipeDB");
@@ -56,7 +56,7 @@ async function connectToMongoDB() {
 
         return next();
       } catch (error) {
-        console.error("JWT verification failed:", error);
+        // console.error("JWT verification failed:", error);
 
         return res.status(401).json({
           message: "Unauthorized Access",
@@ -65,7 +65,7 @@ async function connectToMongoDB() {
     };
     await client.connect();
 
-    console.log("You successfully connected to MongoDB!");
+    // console.log("You successfully connected to MongoDB!");
 
     app.post("/recipes", async (req, res) => {
       const newRecipe = { ...req.body, likes: 0 };
@@ -75,20 +75,20 @@ async function connectToMongoDB() {
     });
     app.delete("/reported-recipe/data/:id", async (req, res) => {
       const { id } = req.params;
-      console.log(id);
+      // console.log(id);
       const result = await reportRecipes.deleteOne({
         recipeId: id,
       });
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
     app.delete("/reported-recipe/data-delete/:id", async (req, res) => {
       const { id } = req.params;
-      console.log(id);
+      // console.log(id);
       const result = await recipes.deleteOne({
         _id: new ObjectId(id),
       });
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
     app.get("/reported-recipe/data", async (req, res) => {
@@ -159,7 +159,7 @@ async function connectToMongoDB() {
 
     app.patch("/recipe/manage/:id", async (req, res) => {
       const recipeId = req.params.id;
-      console.log(recipeId, "this is recipe id from backend");
+      // console.log(recipeId, "this is recipe id from backend");
       const recipe = await recipes.findOne({
         _id: new ObjectId(recipeId),
       });
@@ -194,6 +194,7 @@ async function connectToMongoDB() {
     });
     app.get("/recipes/savedrecipe/:email", authenticate, async (req, res) => {
       const email = req.params.email;
+      console.log(email, "this is email from backend");
 
       const favoriteRecipe = await savedRecipes
         .find({
@@ -241,13 +242,13 @@ async function connectToMongoDB() {
     // });
 
     app.get("/recipes", async (req, res) => {
-      console.log(req.query, "this is qqqqqqqq");
+      // console.log(req.query, "this is qqqqqqqq");
       const search = req.query.search;
       const category = req.query.category;
       const cuisine = req.query.cuisine;
-      console.log(search);
-      console.log(category);
-      console.log(cuisine);
+      // console.log(search);
+      // console.log(category);
+      // console.log(cuisine);
 
       let query = {};
 
@@ -290,13 +291,13 @@ async function connectToMongoDB() {
     });
     app.get("/recipes/user/:email", async (req, res) => {
       const authorEmail = req.params.email;
-      console.log(authorEmail, "this is author email from backend");
+      // console.log(authorEmail, "this is author email from backend");
       const allRecipes = await recipes
         .find({
           authorEmail: authorEmail,
         })
         .toArray();
-      console.log(allRecipes, "this is author user data recipe from backend");
+      // console.log(allRecipes, "this is author user data recipe from backend");
       res.send(allRecipes);
     });
 
@@ -310,6 +311,25 @@ async function connectToMongoDB() {
 
       res.send(tx);
     });
+
+    app.patch("/users/role/:id", async (req, res) => {
+      const userId = req.params.id;
+      const isBlocked = req.body.newStatus;
+
+      // console.log(isBlocked, "this is user id and role from backend");
+      const updatedUser = await users.findOneAndUpdate(
+        { _id: new ObjectId(userId) },
+        {
+          $set: {
+            isBlocked: isBlocked,
+          },
+        },
+      );
+      // console.log(updatedUser, "this is updated user from backend");
+
+      res.send(updatedUser);
+    });
+
     app.get("/recent/recipes/:email", async (req, res) => {
       const email = req.params?.email;
       const recentRecipes = recipes
