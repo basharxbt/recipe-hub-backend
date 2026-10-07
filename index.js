@@ -236,19 +236,10 @@ async function connectToMongoDB() {
       res.send(report);
     });
 
-    // app.get("/recipes", async (req, res) => {
-    //   const allRecipes = await recipes.find().toArray();
-    //   res.send(allRecipes);
-    // });
-
     app.get("/recipes", async (req, res) => {
-      // console.log(req.query, "this is qqqqqqqq");
       const search = req.query.search;
       const category = req.query.category;
       const cuisine = req.query.cuisine;
-      // console.log(search);
-      // console.log(category);
-      // console.log(cuisine);
 
       let query = {};
 
@@ -291,14 +282,35 @@ async function connectToMongoDB() {
     });
     app.get("/recipes/user/:email", async (req, res) => {
       const authorEmail = req.params.email;
-      // console.log(authorEmail, "this is author email from backend");
+
       const allRecipes = await recipes
         .find({
           authorEmail: authorEmail,
         })
         .toArray();
-      // console.log(allRecipes, "this is author user data recipe from backend");
+
       res.send(allRecipes);
+    });
+
+    app.get("/purchased/recipes/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email, "this is email from backend2");
+      const allTx = await transactions.find({ userEmail: email }).toArray();
+      console.log(allTx, "this is all transaction from backend");
+      const premiumRecipes = allTx.filter(
+        (tx) => tx.product === "premium_recipe",
+      );
+
+      const recipeIds = premiumRecipes.map((tx) => new ObjectId(tx.recipeId));
+
+      const purchasedRecipes = await recipes
+        .find({
+          _id: { $in: recipeIds },
+        })
+        .toArray();
+      //  const myPurchasedRecipes = purchasedRecipes.filter(recipe => recipe.)
+
+      res.send(purchasedRecipes);
     });
 
     app.get("/recipehub/users", async (req, res) => {
@@ -316,7 +328,6 @@ async function connectToMongoDB() {
       const userId = req.params.id;
       const isBlocked = req.body.newStatus;
 
-      // console.log(isBlocked, "this is user id and role from backend");
       const updatedUser = await users.findOneAndUpdate(
         { _id: new ObjectId(userId) },
         {
@@ -325,7 +336,6 @@ async function connectToMongoDB() {
           },
         },
       );
-      // console.log(updatedUser, "this is updated user from backend");
 
       res.send(updatedUser);
     });
