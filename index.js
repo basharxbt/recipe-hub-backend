@@ -11,7 +11,7 @@ const port = 3100;
 require("dotenv").config();
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://recipe-hub-fronted.vercel.app",
     credentials: true,
   }),
 );
@@ -21,7 +21,9 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 
 // console.log("Mongo URI exists:", !!process.env.MONGODB_URI);
-const JWKS = createRemoteJWKSet(new URL("http://localhost:3000/api/auth/jwks"));
+const JWKS = createRemoteJWKSet(
+  new URL("https://recipe-hub-fronted.vercel.app/api/auth/jwks"),
+);
 const client = new MongoClient(uri);
 const database = client.db("RecipeDB");
 const recipes = database.collection("Recipes");
@@ -63,7 +65,7 @@ async function connectToMongoDB() {
         });
       }
     };
-    await client.connect();
+    // await client.connect();
 
     // console.log("You successfully connected to MongoDB!");
 
@@ -187,7 +189,7 @@ async function connectToMongoDB() {
       });
     });
 
-    app.post("/recipes/savedrecipe", async (req, res) => {
+    app.post("/recipes/savedrecipe", authenticate, async (req, res) => {
       const recipe = await savedRecipes.insertOne(req.body);
 
       res.send(recipe);
@@ -226,7 +228,7 @@ async function connectToMongoDB() {
       res.send(unsaveRecipe);
     });
 
-    app.post("/recipehub/report", async (req, res) => {
+    app.post("/recipehub/report", authenticate, async (req, res) => {
       const data = req.body;
       const report = await reportRecipes.insertOne(data);
       res.send(report);
@@ -328,6 +330,7 @@ async function connectToMongoDB() {
       const userId = req.params.id;
       const isBlocked = req.body.newStatus;
 
+      // console.log(isBlocked, "this is user id and role from backend");
       const updatedUser = await users.findOneAndUpdate(
         { _id: new ObjectId(userId) },
         {
